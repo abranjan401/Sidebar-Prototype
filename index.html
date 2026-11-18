@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sidebar Order Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: customer phone (or walk-up kiosk) on the left, the bartender order screen on the right; stacks on phones */
+:root{
+  --bg:#eef0f3; --surface:#ffffff; --sunk:#e3e6eb; --fg:#1b1e2b; --muted:#5a6072;
+  --line:#d3d7df; --brass:#9a5c12; --brass-btn:#b06a16; --brass-soft:#f6ead8; --ok:#1f7a4d; --ok-soft:#dcf1e5;
+  --info:#2457a6; --info-soft:#e1ebfa; --warn:#a5470f; --warn-soft:#fbe6d8; --ink:#232742; --onbrass:#ffffff;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#13151f; --surface:#1d2030; --sunk:#262a3d; --fg:#ebedf3; --muted:#a0a6ba;
+  --line:#33384d; --brass:#e6a95a; --brass-btn:#c67d22; --brass-soft:#3a2e1d; --ok:#5cc792; --ok-soft:#183a2a;
+  --info:#8fb4f0; --info-soft:#1c2a45; --warn:#f09a62; --warn-soft:#3d2518; --ink:#0d0f18; --onbrass:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13151f; --surface:#1d2030; --sunk:#262a3d; --fg:#ebedf3; --muted:#a0a6ba;
+  --line:#33384d; --brass:#e6a95a; --brass-btn:#c67d22; --brass-soft:#3a2e1d; --ok:#5cc792; --ok-soft:#183a2a;
+  --info:#8fb4f0; --info-soft:#1c2a45; --warn:#f09a62; --warn-soft:#3d2518; --ink:#0d0f18; --onbrass:#ffffff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+h1{font-family:var(--f-display);font-weight:800;font-size:2.6rem;letter-spacing:.02em;margin:0;line-height:1;text-wrap:balance}
+h1 span{color:var(--brass)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.btn-o{font:inherit;font-weight:600;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn-o:hover{border-color:var(--brass)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.stage{display:grid;grid-template-columns:400px 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.label{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--muted);margin:0 0 8px}
+.ex{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 4px;margin-left:6px;vertical-align:middle}
+
+/* customer side */
+.modes{display:flex;gap:6px;background:var(--sunk);padding:4px;border-radius:10px;margin-bottom:10px}
+.modes button{flex:1;font:inherit;font-weight:600;border:0;border-radius:8px;padding:8px;background:transparent;color:var(--muted);cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.device{background:var(--ink);border-radius:34px;padding:12px;max-width:400px;width:100%;margin:0 auto}
+.device.kiosk{border-radius:18px;padding:16px 16px 28px}
+.screen{background:var(--surface);border-radius:24px;min-height:640px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.kiosk .screen{border-radius:8px}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.venue{font-family:var(--f-display);font-weight:800;font-size:1.55rem;letter-spacing:.02em;line-height:1}
+.venue small{display:block;font-family:var(--f-body);font-size:.78rem;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:3px}
+.badge{font-size:.74rem;font-weight:700;background:var(--brass-soft);color:var(--brass);padding:4px 8px;border-radius:999px;white-space:nowrap}
+.body{padding:14px 18px;display:flex;flex-direction:column;gap:12px;flex:1;min-width:0}
+.step{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--brass)}
+.big-q{font-family:var(--f-display);font-weight:800;font-size:1.9rem;line-height:1.05;margin:0}
+.field{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600}
+.field input{font:inherit;font-weight:500;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.cardline{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px dashed var(--line);border-radius:10px;font-size:.92rem}
+.cardline b{font-family:var(--f-mono)}
+.note{font-size:.85rem;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 12px;margin:0}
+.slots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.slot{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:6px;text-align:left}
+.slot b{font-family:var(--f-mono);font-size:1.05rem}
+.slot small{font-size:.78rem;color:var(--muted)}
+.meter{height:6px;background:var(--sunk);border-radius:999px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--brass-btn)}
+.slot[aria-pressed="true"]{border-color:var(--brass);background:var(--brass-soft)}
+.slot.full{opacity:.55;cursor:not-allowed}
+.slot.full .meter i{background:var(--warn)}
+.cat{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
+.item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.item b{font-weight:600}
+.item .meta{grid-column:1;font-size:.8rem;color:var(--muted)}
+.qty{grid-row:1/span 2;grid-column:2;display:flex;align-items:center;gap:8px}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.05rem;cursor:pointer;line-height:1}
+.qty button:hover{border-color:var(--brass)}
+.qty button:disabled{opacity:.35;cursor:not-allowed}
+.qty span{font-family:var(--f-mono);min-width:1ch;text-align:center}
+.foot{padding:14px 18px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.total{display:flex;justify-content:space-between;font-weight:600;font-variant-numeric:tabular-nums}
+.cta{font:inherit;font-weight:700;font-size:1.02rem;background:var(--brass-btn);color:var(--onbrass);border:0;border-radius:12px;padding:14px;cursor:pointer}
+.cta:disabled{opacity:.4;cursor:not-allowed}
+.ghost{font:inherit;font-weight:600;background:transparent;color:var(--muted);border:0;padding:6px;cursor:pointer;text-decoration:underline}
+.ticket{border:2px dashed var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.code{font-family:var(--f-mono);font-weight:700;font-size:2.6rem;letter-spacing:.06em;line-height:1}
+.pill{font-weight:700;font-size:.78rem;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.p-queued{background:var(--sunk);color:var(--muted)}
+.p-making{background:var(--info-soft);color:var(--info)}
+.p-ready{background:var(--ok-soft);color:var(--ok)}
+.p-done{background:var(--brass-soft);color:var(--brass)}
+.rows{display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.rows div{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.rows span:first-child{color:var(--muted)}
+.tips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tips button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:9px 4px;cursor:pointer}
+.tips button[aria-pressed="true"]{border-color:var(--brass);background:var(--brass-soft)}
+.toast{position:absolute;left:12px;right:12px;top:12px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:2}
+.toast b{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#f2b866;margin-bottom:2px}
+@media (prefers-reduced-motion:no-preference){.toast{animation:drop .35s ease-out}@keyframes drop{from{transform:translateY(-12px);opacity:0}}}
+
+/* bartender side */
+.board{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.board h2{font-family:var(--f-display);font-weight:800;font-size:1.8rem;margin:0;letter-spacing:.02em}
+.board-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.rule{font-size:.85rem;color:var(--muted)}
+.tonight{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi{background:var(--sunk);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi b{display:block;font-family:var(--f-mono);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.78rem;color:var(--muted)}
+.group{display:flex;flex-direction:column;gap:8px}
+.group-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700}
+.group-h span:first-child{font-family:var(--f-mono)}
+.order{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;border:1px solid var(--line);border-left:5px solid var(--line);border-radius:10px;padding:10px 12px}
+.order.s-making{border-left-color:var(--info)}
+.order.s-ready{border-left-color:var(--ok)}
+.order.fresh{background:var(--brass-soft)}
+.order .oc{font-family:var(--f-mono);font-weight:700;font-size:1.1rem}
+.order .what{font-size:.92rem;min-width:0}
+.order .what small{display:block;color:var(--muted)}
+.acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.act{font:inherit;font-size:.84rem;font-weight:700;border-radius:8px;padding:8px 10px;cursor:pointer;border:1px solid var(--brass-btn);background:var(--brass-btn);color:var(--onbrass);white-space:nowrap}
+.act.alt{background:transparent;color:var(--brass)}
+.empty{color:var(--muted);font-size:.9rem;margin:0}
+@media (max-width:520px){.tonight{grid-template-columns:1fr}.order{grid-template-columns:auto 1fr}.acts{grid-column:1/-1;justify-content:flex-start}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Side<span>bar</span></h1>
+      <p class="sub">Every drink at the bar is ordered through Sidebar. Guests open a tab, order up to 3 drinks at a time, and pick a pickup time. Each drink takes one of that time’s 6 spots. The bartender screen shows every order by slot. All orders and numbers here are samples for the demo.</p>
+    </div>
+    <button class="btn-o" id="reset" type="button">Reset demo</button>
+  </header>
+
+  <div class="stage">
+    <section aria-label="Customer ordering">
+      <div class="modes" role="group" aria-label="Ordering device">
+        <button type="button" id="m-phone" aria-pressed="true">Phone app</button>
+        <button type="button" id="m-kiosk" aria-pressed="false">Walk-up kiosk</button>
+      </div>
+      <div class="device" id="device"><div class="screen" id="screen"></div></div>
+    </section>
+
+    <section class="board" aria-label="Bartender order screen">
+      <div class="board-head">
+        <h2>Bar screen</h2>
+        <span class="rule">Make orders by time slot · check ID at hand-off</span>
+      </div>
+      <div class="tonight" id="tonight"></div>
+      <div id="queue" style="display:flex;flex-direction:column;gap:16px"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const MENU=[
+  {cat:"Beer",items:[{id:"bl",name:"Bud Light",meta:"16 oz draft",price:5},{id:"ipa",name:"Local IPA",meta:"16 oz draft",price:7}]},
+  {cat:"Seltzer",items:[{id:"wc",name:"White Claw",meta:"12 oz can",price:6}]},
+  {cat:"Cocktails",items:[{id:"vs",name:"Vodka soda",meta:"Lime or cranberry",price:8},{id:"mg",name:"Margarita",meta:"On the rocks",price:10}]},
+  {cat:"Wine",items:[{id:"rw",name:"House red",meta:"Glass",price:9}]},
+  {cat:"No alcohol",items:[{id:"w",name:"Water",meta:"Free",price:0,na:true},{id:"sd",name:"Soda",meta:"Coke, Sprite, ginger ale",price:3,na:true}]}
+];
+const ITEMS={};MENU.forEach(c=>c.items.forEach(i=>ITEMS[i.id]=i));
+const CAP=6, BASE_ORDERS=138, BASE_AVG=4.3*60;
+let S;
+const now=()=>Date.now();
+function money(n){return "$"+n.toFixed(2)}
+function slotTimes(){
+  /* fixed demo times: 10:00 PM onward, every 5 minutes */
+  return [0,1,2,3,4,5].map(i=>"10:"+String(i*5).padStart(2,"0")+" PM");
+}
+function fresh(){
+  const t=slotTimes(), taken=[6,5,4,3,2,1], n=now();
+  return {mode:"phone",step:"open",name:"Alex",cart:{},slot:null,tip:.2,mine:[],seq:0,toast:null,closed:null,
+    slots:t.map((label,i)=>({label,taken:taken[i]})),
+    orders:[
+      {id:"e1",code:"K7",who:"Jordan",items:"2× Bud Light",total:10,slot:0,status:"ready",placed:n-300000,readyAt:n-60000,ex:true},
+      {id:"e2",code:"P2",who:"Sam",items:"1× Margarita, 1× Water",total:10,slot:0,status:"making",placed:n-180000,ex:true},
+      {id:"e3",code:"Q9",who:"Kiosk",items:"3× White Claw",total:18,slot:0,status:"queued",placed:n-90000,ex:true},
+      {id:"e4",code:"T4",who:"Riley",items:"2× Vodka soda",total:16,slot:1,status:"queued",placed:n-60000,ex:true}
+    ]};
+}
+function cartCount(){return Object.values(S.cart).reduce((a,b)=>a+b,0)}
+function cartTotal(){return Object.entries(S.cart).reduce((s,[id,q])=>s+ITEMS[id].price*q,0)}
+function cartText(){return Object.entries(S.cart).filter(([,q])=>q).map(([id,q])=>q+"× "+ITEMS[id].name).join(", ")}
+const MAXALC=3;
+function alcCount(){return Object.entries(S.cart).reduce((s,[id,q])=>s+(ITEMS[id].na?0:q),0)}
+function fits(i){return S.slots[i].taken+alcCount()<=CAP}
+function myOrders(){return S.orders.filter(o=>S.mine.includes(o.id))}
+function tabTotal(){return myOrders().reduce((s,o)=>s+o.total,0)}
+function el(h){const t=document.createElement("template");t.innerHTML=h.trim();return t.content}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+const PILL={queued:["p-queued","In line to be made"],making:["p-making","Being made"],ready:["p-ready","Ready: show ID at the bar"],done:["p-done","Picked up"]};
+const kiosk=()=>S.mode==="kiosk";
+
+function head(){return `<div class="bar"><div class="venue">The Corner Tap<small>Example venue · Franklin St</small></div><span class="badge">${kiosk()?"Kiosk":"Sidebar"}</span></div>`}
+
+function renderScreen(){
+  const s=document.getElementById("screen");s.innerHTML="";
+  document.getElementById("device").className="device"+(kiosk()?" kiosk":"");
+  let h=head();
+  if(S.toast) h+=`<div class="toast" role="status"><b>Text from Sidebar</b>${esc(S.toast)}</div>`;
+
+  if(S.step==="open"){
+    h+= kiosk()
+     ? `<div class="body"><span class="step">Walk-up kiosk</span><p class="big-q">No phone? Order here.</p>
+        <p class="note">This kiosk sends orders to the same bar screen as the app. Tap your card to open a tab for tonight.</p>
+        <div class="cardline"><span>Card</span><b>Tap or insert</b></div></div>
+        <div class="foot"><button class="cta" id="go" type="button">Tap card to open tab</button></div>`
+     : `<div class="body"><span class="step">Step 1 of 3 · Open your tab</span><p class="big-q">Skip the line tonight.</p>
+        <label class="field" for="nm">Name on the order<input id="nm" value="${esc(S.name)}" autocomplete="off"></label>
+        <div class="cardline"><span>Card on file</span><b>Visa •• 4242</b></div>
+        <p class="note">Your card is charged once, when you close your tab. Order as many rounds as you like until then.</p></div>
+        <div class="foot"><button class="cta" id="go" type="button">Open tab</button></div>`;
+  }
+  else if(S.step==="slot"){
+    const need=alcCount();
+    h+=`<div class="body"><span class="step">${kiosk()?"Step 2 of 2":"Step 3 of 3"} · Pick a pickup time</span>
+      <p class="big-q">When do you want it?</p>
+      <p class="note">Your order uses <b>${need} spot${need===1?"":"s"}</b>, one per drink. Each pickup time fits ${CAP} drinks, so bigger orders may wait for a later time.</p>
+      <div class="slots">${S.slots.map((sl,i)=>{const left=CAP-sl.taken,ok=fits(i);
+        return `<button type="button" class="slot${ok?"":" full"}" data-slot="${i}" aria-pressed="${S.slot===i}" ${ok?"":'aria-disabled="true"'}>
+          <b>${sl.label}</b><span class="meter"><i style="width:${Math.min(100,sl.taken/CAP*100)}%"></i></span>
+          <small>${left<=0?"Full":ok?left+" of "+CAP+" spots left":"Only "+left+" left, need "+need}</small></button>`}).join("")}</div>
+      <p class="note" id="fullnote">Pickup times fill up so the bar can keep up and nobody waits in a crowd.</p></div>
+      <div class="foot"><div class="total"><span>${need} drink${need===1?"":"s"}${cartCount()>need?" + water/soft drinks":""}</span><span>${money(cartTotal())}</span></div>
+      <button class="cta" id="go" type="button" ${S.slot===null?"disabled":""}>Send order to the bar</button>
+      <button class="ghost" id="back" type="button">Change drinks</button></div>`;
+  }
+  else if(S.step==="menu"){
+    const n=alcCount();
+    h+=`<div class="body"><span class="step">${kiosk()?"Step 1 of 2":"Step 2 of 3"} · Choose drinks</span>
+      <p class="note">Up to ${MAXALC} drinks per order. Water and soft drinks don’t count toward the limit.</p>
+      ${MENU.map(c=>`<p class="cat">${c.cat}</p>`+c.items.map(m=>`<div class="item"><b>${m.name}</b>
+        <div class="qty"><button type="button" data-d="-1" data-id="${m.id}" aria-label="Remove ${m.name}">−</button><span>${S.cart[m.id]||0}</span><button type="button" data-d="1" data-id="${m.id}" aria-label="Add ${m.name}" ${!m.na&&n>=MAXALC?"disabled":""}>+</button></div>
+        <span class="meta">${m.meta} · ${m.price?money(m.price):"Free"}</span></div>`).join("")).join("")}</div>
+      <div class="foot"><div class="total"><span>${n} of ${MAXALC} drinks</span><span>${money(cartTotal())}</span></div>
+      <button class="cta" id="go" type="button" ${cartCount()?"":"disabled"}>Choose pickup time</button>
+      ${S.mine.length?'<button class="ghost" id="back" type="button">Back to my tab</button>':""}</div>`;
+  }
+  else if(S.step==="kdone"){
+    const o=S.orders.find(x=>x.id===S.lastKiosk);
+    h+=`<div class="body"><span class="step">Order sent</span>
+      <div class="ticket"><span class="label" style="margin:0">Your code</span><span class="code">${o.code}</span>
+      <span class="pill ${PILL[o.status][0]}">${PILL[o.status][1]}</span></div>
+      <p class="note">Watch the screen above the bar for your code, then show your ID at pickup. Your card is charged when the bar closes your tab.</p></div>
+      <div class="foot"><button class="cta" id="go" type="button">Done, next guest</button></div>`;
+  }
+  else if(S.step==="tab"){
+    const mine=myOrders();
+    h+=`<div class="body"><span class="step">Your tab · ${esc(S.name)}</span>
+      ${mine.map(o=>`<div class="ticket"><span class="pill ${PILL[o.status][0]}">${PILL[o.status][1]}</span>
+        <span class="code">${o.code}</span><span style="font-size:.9rem">${esc(o.items)} · pickup ${S.slots[o.slot].label}</span></div>`).join("")}
+      <div class="rows"><div><span>Tab so far</span><b>${money(tabTotal())}</b></div></div></div>
+      <div class="foot"><button class="cta" id="go" type="button">Order another round</button>
+      <button class="ghost" id="close" type="button">Close tab</button></div>`;
+  }
+  else if(S.step==="close"){
+    const sub=tabTotal(),tip=sub*S.tip;
+    h+=`<div class="body"><span class="step">Close your tab</span><p class="big-q">One charge for the night.</p>
+      <div class="rows">${myOrders().map(o=>`<div><span>${esc(o.items)}</span><span>${money(o.total)}</span></div>`).join("")}</div>
+      <p class="label" style="margin:6px 0 0">Tip your bartenders</p>
+      <div class="tips">${[0,.15,.2,.25].map(t=>`<button type="button" data-tip="${t}" aria-pressed="${S.tip===t}">${t?Math.round(t*100)+"%":"None"}</button>`).join("")}</div>
+      <div class="rows"><div><span>Drinks</span><span>${money(sub)}</span></div><div><span>Tip</span><span>${money(tip)}</span></div>
+      <div><b>Total</b><b>${money(sub+tip)}</b></div></div>
+      <p class="note">No extra fee for you. The bar covers Sidebar.</p></div>
+      <div class="foot"><button class="cta" id="go" type="button">Pay ${money(sub+tip)} (demo, no charge)</button>
+      <button class="ghost" id="back" type="button">Keep tab open</button></div>`;
+  }
+  else if(S.step==="closed"){
+    h+=`<div class="body"><span class="step">Tab closed</span>
+      <div class="ticket"><span class="label" style="margin:0">Charged once to Visa •• 4242</span><span class="code">${money(S.closed)}</span></div>
+      <p class="note">Thanks for coming out. One card charge for every round tonight.</p></div>
+      <div class="foot"><button class="cta" id="go" type="button">Start a new tab</button></div>`;
+  }
+  s.append(el(h));
+  wireScreen(s);
+}
+
+function wireScreen(s){
+  const go=s.querySelector("#go"),back=s.querySelector("#back");
+  const nm=s.querySelector("#nm"); if(nm) nm.oninput=()=>{S.name=nm.value||"Guest"};
+  if(S.step==="open") go.onclick=()=>{S.step="menu";S.cart={};S.slot=null;render()};
+  if(S.step==="slot"){
+    s.querySelectorAll(".slot").forEach(b=>b.onclick=()=>{const i=+b.dataset.slot;
+      if(!fits(i)){const left=CAP-S.slots[i].taken;let nx=S.slots.findIndex((x,j)=>j>i&&fits(j));if(nx<0)nx=S.slots.findIndex((x,j)=>fits(j));
+        s.querySelector("#fullnote").textContent=(left<=0?`${S.slots[i].label} is full.`:`${S.slots[i].label} only has ${left} spot${left===1?"":"s"} left.`)+(nx>=0?` Soonest time that fits your order: ${S.slots[nx].label}.`:" No time fits this order right now. Try fewer drinks.");return}
+      S.slot=i;renderScreen()});
+    go.onclick=placeOrder;
+    back.onclick=()=>{S.step="menu";renderScreen()};
+  }
+  if(S.step==="menu"){
+    s.querySelectorAll(".qty button").forEach(b=>b.onclick=()=>{const id=b.dataset.id,d=+b.dataset.d;
+      if(d>0&&!ITEMS[id].na&&alcCount()>=MAXALC)return;
+      S.cart[id]=Math.max(0,Math.min(6,(S.cart[id]||0)+d));renderScreen()});
+    go.onclick=()=>{S.slot=null;S.step="slot";renderScreen()};
+    if(back) back.onclick=()=>{S.step="tab";renderScreen()};
+  }
+  if(S.step==="kdone") go.onclick=()=>{S.step="open";render()};
+  if(S.step==="tab"){go.onclick=()=>{S.cart={};S.slot=null;S.step="menu";renderScreen()};s.querySelector("#close").onclick=()=>{S.step="close";renderScreen()}}
+  if(S.step==="close"){
+    s.querySelectorAll(".tips button").forEach(b=>b.onclick=()=>{S.tip=+b.dataset.tip;renderScreen()});
+    go.onclick=()=>{S.closed=tabTotal()*(1+S.tip);S.step="closed";render()};
+    back.onclick=()=>{S.step="tab";renderScreen()};
+  }
+  if(S.step==="closed") go.onclick=()=>{S.mine=[];S.tip=.2;S.step="open";render()};
+}
+
+function placeOrder(){
+  S.seq++;const code=(kiosk()?"K":"S")+(S.seq+10);
+  const o={id:"m"+S.seq,code,who:kiosk()?"Kiosk":S.name,items:cartText(),total:cartTotal(),slot:S.slot,status:"queued",placed:now(),fresh:true};
+  S.orders.push(o);S.slots[S.slot].taken=Math.min(CAP,S.slots[S.slot].taken+alcCount());
+  if(kiosk()){S.lastKiosk=o.id;S.step="kdone"}else{S.mine.push(o.id);S.step="tab"}
+  S.cart={};render();
+  setTimeout(()=>{o.fresh=false;renderBoard()},2500);
+}
+
+function renderBoard(){
+  const done=S.orders.filter(o=>o.readyAt);
+  const live=done.filter(o=>!o.ex);
+  const avg=(BASE_AVG*BASE_ORDERS+done.reduce((s,o)=>s+(o.readyAt-o.placed)/1000,0))/(BASE_ORDERS+done.length);
+  const nxt=S.slots.find(x=>x.taken<CAP), nleft=nxt?CAP-nxt.taken:0;
+  document.getElementById("tonight").innerHTML=
+    `<div class="kpi"><b>${BASE_ORDERS+S.orders.length}</b><span>orders tonight</span></div>
+     <div class="kpi"><b>${(avg/60).toFixed(1)} min</b><span>avg order to ready</span></div>
+     <div class="kpi"><b>${nxt?nxt.label:"All full"}</b><span>${nxt?`next open pickup · ${nleft} drink spot${nleft===1?"":"s"} left`:"every slot booked for the next 30 min"}</span></div>`;
+  const q=document.getElementById("queue");q.innerHTML="";
+  const open=S.orders.filter(o=>o.status!=="done");
+  if(!open.length){q.append(el(`<p class="empty">No open orders. New Sidebar orders appear here, grouped by pickup time.</p>`));return}
+  [...new Set(open.map(o=>o.slot))].sort((a,b)=>a-b).forEach(si=>{
+    const list=open.filter(o=>o.slot===si).sort((a,b)=>a.placed-b.placed);
+    q.append(el(`<div class="group"><div class="group-h"><span>Pickup ${S.slots[si].label}</span><span class="rule">${S.slots[si].taken} of ${CAP} drink spots booked</span></div>
+      ${list.map(o=>{
+        const btn=o.status==="queued"?`<button class="act alt" type="button" data-act="making" data-id="${o.id}">Start</button>`
+          :o.status==="making"?`<button class="act" type="button" data-act="ready" data-id="${o.id}">Ready · text guest</button>`
+          :`<button class="act" type="button" data-act="done" data-id="${o.id}">Handed off · ID checked</button>`;
+        return `<div class="order s-${o.status}${o.fresh?" fresh":""}"><span class="oc">${o.code}</span>
+          <span class="what">${esc(o.items)}${o.ex?'<span class="ex">Example</span>':""}<small>${esc(o.who)} · <span class="pill ${PILL[o.status][0]}" style="padding:1px 8px">${o.status==="queued"?"New":o.status==="making"?"Making":"Ready"}</span></small></span>
+          <span class="acts">${btn}</span></div>`}).join("")}</div>`));
+  });
+  q.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+    const o=S.orders.find(x=>x.id===b.dataset.id);o.status=b.dataset.act;o.fresh=false;
+    if(o.status==="ready"){o.readyAt=now();
+      if(S.mine.includes(o.id)) S.toast=`Your order ${o.code} is ready! Show your ID at the bar to pick it up.`;}
+    if(o.status==="done"&&o.slot!=null){/* slot stays booked for the night */}
+    render();
+    if(S.toast) setTimeout(()=>{S.toast=null;renderScreen()},4500);
+  });
+}
+function render(){renderScreen();renderBoard()}
+function setMode(m){S.mode=m;S.step="open";S.slot=null;S.cart={};
+  document.getElementById("m-phone").setAttribute("aria-pressed",m==="phone");
+  document.getElementById("m-kiosk").setAttribute("aria-pressed",m==="kiosk");render()}
+document.getElementById("m-phone").onclick=()=>setMode("phone");
+document.getElementById("m-kiosk").onclick=()=>setMode("kiosk");
+document.getElementById("reset").onclick=()=>{S=fresh();setMode("phone")};
+S=fresh();render();
+</script>
+</body>
+</html>
